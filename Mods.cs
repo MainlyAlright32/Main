@@ -1,4 +1,4 @@
-﻿using ShibaGTTemplate.Utilities;
+using ShibaGTTemplate.Utilities;
 using Photon.Pun;   
 using Photon.Realtime;
 using System;
@@ -38,6 +38,8 @@ using System.Runtime.InteropServices;
 using TMPro;
 using Random = UnityEngine.Random;
 using MainModMenu;
+using System.Runtime.Remoting.Messaging;
+using System.Collections;
 
 namespace ModsMain
 {
@@ -72,12 +74,221 @@ namespace ModsMain
         public static GameObject funn;
         public static bool fpcc;
 
+        public static void ThemeChanger()
+        {
+            if (ControllerInputPoller.instance.rightGrab)
+            {
+                ActualMenu.ChangingColors = true;
+                ActualMenu.FirstColor = Color.red;
+                ActualMenu.SecondColor = Color.white;
+            }
+            else if (ControllerInputPoller.instance.rightGrab)
+            {
+                ActualMenu.ChangingColors = true;
+                ActualMenu.FirstColor = Color.green;
+                ActualMenu.SecondColor = Color.white;
+            }
+            else if (ControllerInputPoller.instance.rightGrab)
+            {
+                ActualMenu.ChangingColors = true;
+                ActualMenu.FirstColor = Color.black;
+                ActualMenu.SecondColor = Color.white;
+            }
+            else if (ControllerInputPoller.instance.rightGrab)
+            {
+                ActualMenu.ChangingColors = false;
+                ActualMenu.NormalColor = Color.red;
+            }
+            else if (ControllerInputPoller.instance.rightGrab)
+            {
+                ActualMenu.ChangingColors = false;
+                ActualMenu.NormalColor = Color.red;
+            }
+            else if (ControllerInputPoller.instance.rightGrab)
+            {
+                ActualMenu.ChangingColors = false;
+                ActualMenu.NormalColor = Color.green;
+            }
+            else if (ControllerInputPoller.instance.rightGrab)
+            {
+                ActualMenu.ChangingColors = false;
+                ActualMenu.NormalColor = Color.black;
+            }
+            else
+            {
+                ActualMenu.ChangingColors = true;
+                ActualMenu.FirstColor = Color.black;
+                ActualMenu.SecondColor = Color.white;
+            }
+        }
+
+        
+
+        public static void StartMatSelf(Mods mods, MonoBehaviour monoBehaviour)
+        {
+            monoBehaviour.StartCoroutine(mods.MatSpamSelf());
+        }
+
+
+        public static void VibrateAll()
+        {
+            if (PhotonNetwork.LocalPlayer.IsMasterClient)
+            {
+                foreach (Photon.Realtime.Player player4 in PhotonNetwork.PlayerListOthers)
+                {
+                    GorillaGameManager.instance.FindVRRigForPlayer(player4).RPC("SetJoinTaggedTime", player4, Array.Empty<object>());
+                }
+            }
+        }
+
+        private static GorillaBattleManager GorillaBattleManager;
+        private static GorillaHuntManager GorillaHuntManager;
+        private static GorillaTagManager GorillaTagManager;
+        private static bool IsTaggedSelf;
+
+
+        private IEnumerator MatSpamSelf()
+        {
+            Player owner = PhotonNetwork.LocalPlayer;
+            if (GorillaGameManager.instance != null)
+            {
+                if (GorillaGameManager.instance.GameMode().Contains("INFECTION"))
+                {
+                    if (Mods.GorillaTagManager == null)
+                    {
+                        Mods.GorillaTagManager = GorillaGameManager.instance.gameObject.GetComponent<GorillaTagManager>();
+                    }
+                }
+                else
+                {
+                    if (GorillaGameManager.instance.GameMode().Contains("HUNT"))
+                    {
+                        if (GorillaHuntManager == null)
+                        {
+                            GorillaHuntManager = GorillaGameManager.instance.gameObject.GetComponent<GorillaHuntManager>();
+                        }
+                    }
+                    else
+                    {
+                        if (GorillaGameManager.instance.GameMode().Contains("BATTLE"))
+                        {
+                            if (Mods.GorillaBattleManager == null)
+                            {
+                                Mods.GorillaBattleManager = GorillaGameManager.instance.gameObject.GetComponent<GorillaBattleManager>();
+                            }
+                        }
+                    }
+                }
+            }
+            if (Mods.GorillaTagManager != null)
+            {
+                if (Mods.GorillaTagManager.isCurrentlyTag)
+                {
+                    if (Mods.GorillaTagManager.currentIt == owner)
+                    {
+                        Mods.GorillaTagManager.currentIt = null;
+                        yield return new WaitForSeconds(0.1f);
+                    }
+                    else
+                    {
+                        Mods.GorillaTagManager.currentIt = owner;
+                        yield return new WaitForSeconds(0.1f);
+                    }
+                }
+                else
+                {
+                    if (Mods.GorillaTagManager.currentInfected.Contains(owner))
+                    {
+                        IsTaggedSelf = true;
+                    }
+                    else
+                    {
+                        IsTaggedSelf = false;
+                    }
+                    if (IsTaggedSelf)
+                    {
+                        Mods.GorillaTagManager.currentInfected.Remove(owner);
+                        Mods.GorillaTagManager.UpdateState();
+                        yield return new WaitForSeconds(0.1f);
+                    }
+                    else
+                    {
+                        Mods.GorillaTagManager.currentInfected.Add(owner);
+                        Mods.GorillaTagManager.UpdateState();
+                        yield return new WaitForSeconds(0.1f);
+                    }
+                }
+            }
+            if (GorillaHuntManager != null)
+            {
+                if (GorillaHuntManager.currentHunted.Contains(owner))
+                {
+                    IsTaggedSelf = true;
+                }
+                else
+                {
+                    IsTaggedSelf = false;
+                }
+                if (IsTaggedSelf)
+                {
+                    GorillaHuntManager.currentHunted.Add(owner);
+                    GorillaHuntManager.UpdateHuntState();
+                    yield return new WaitForSeconds(0.1f);
+                }
+                else
+                {
+                    GorillaHuntManager.currentHunted.Remove(owner);
+                    GorillaHuntManager.UpdateHuntState();
+                    yield return new WaitForSeconds(0.1f);
+                }
+            }
+            if (Mods.GorillaBattleManager != null)
+            {
+                if (Mods.GorillaBattleManager.playerLives[owner.ActorNumber] == 3)
+                {
+                    IsTaggedSelf = true;
+                }
+                else
+                {
+                    IsTaggedSelf = false;
+                }
+                if (IsTaggedSelf)
+                {
+                    Mods.GorillaBattleManager.playerLives[owner.ActorNumber] = 0;
+                    yield return new WaitForSeconds(0.1f);
+                }
+                else
+                {
+                    Mods.GorillaBattleManager.playerLives[owner.ActorNumber] = 3;
+                    yield return new WaitForSeconds(0.1f);
+                }
+            }
+            owner = null;
+        }
+
+
+private static GameObject pointer;
+
+
+        public static void SlowAll()
+        {
+            if (PhotonNetwork.LocalPlayer.IsMasterClient)
+            {
+                foreach (Photon.Realtime.Player player3 in PhotonNetwork.PlayerListOthers)
+                {
+                    GorillaGameManager.instance.FindVRRigForPlayer(player3).RPC("SetTaggedTime", player3, Array.Empty<object>());
+                }
+            }
+        }
+
+
+
         public static void Platforms()
         {
             PlatformsThing(invisplat, stickyplatforms);
         }
 
-        public static GameObject pointer;
+       
         public static void fpc()
         {
             fpcc = true;
@@ -175,15 +386,24 @@ namespace ModsMain
             }
         }
 
+        
+
+        public static void GetStickOff()
+        {
+            GameObject.Find("LBAAK").SetActive(false);
+        }
+
+        public static void GetStickOn()
+        {
+            GameObject.Find("LBAAK").SetActive(true);
+        }
+
         public static float BoardSelectCooldown;
 
 
         public static void WaterBalloonMinigun()
         {
-            bool flag = ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f;
-            bool flag2 = flag;
-            bool flag3 = flag2;
-            if (flag3)
+            if (ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f)
             {
                 GameObject gameObject = GameObject.Find("Environment Objects/PersistentObjects_Prefab/GlobalObjectPools/WaterBalloonProjectile(Clone)");
                 Mods.BoardSelectCooldown = Time.time;
@@ -236,8 +456,7 @@ namespace ModsMain
 
         public static void WaterBalloonProjectileSpammer()
         {
-            bool flag = ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0f;
-            if (flag)
+            if (ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0f)
             {
                 GameObject gameObject = GameObject.Find("Environment Objects/PersistentObjects_Prefab/GlobalObjectPools/WaterBalloonProjectile(Clone)");
                 Mods.BoardSelectCooldown = Time.time;
@@ -268,17 +487,16 @@ namespace ModsMain
             }
         }
 
+        //Shoutout to my friend for giving this too me!
         public static void Beacons()
         {
-            bool flag = PhotonNetwork.CurrentRoom != null;
-            if (flag)
+            if (PhotonNetwork.CurrentRoom != null)
             {
                 foreach (Photon.Realtime.Player player in PhotonNetwork.PlayerListOthers)
                 {
                     PhotonView photonView = GorillaGameManager.instance.FindVRRigForPlayer(player);
                     VRRig vrrig = GorillaGameManager.instance.FindPlayerVRRig(player);
-                    bool flag2 = !vrrig.isOfflineVRRig && !vrrig.isMyPlayer && !photonView.IsMine;
-                    if (flag2)
+                    if (!vrrig.isOfflineVRRig && !vrrig.isMyPlayer && !photonView.IsMine)
                     {
                         GameObject gameObject = GameObject.CreatePrimitive(0);
                         GameObject.Destroy(gameObject.GetComponent<BoxCollider>());
@@ -294,6 +512,8 @@ namespace ModsMain
                 }
             }
         }
+
+        //Shoutout to my friend for giving this too me!
 
         public static void processTracers()
         {
@@ -324,10 +544,7 @@ namespace ModsMain
 
         public static void ProjectileSnowballMinigun()
         {
-            bool flag = ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f;
-            bool flag2 = flag;
-            bool flag3 = flag2;
-            if (flag3)
+            if (ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f)
             {
                 GameObject gameObject = GameObject.Find("Environment Objects/PersistentObjects_Prefab/GlobalObjectPools/SnowballProjectile(Clone)");
                 Mods.BoardSelectCooldown = Time.time;
@@ -548,8 +765,7 @@ namespace ModsMain
 
         public static void BetterShitGun()
         {
-            bool flag = ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f;
-            if (flag)
+            if (ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f)
             {
                 GameObject gameObject = GameObject.Find("Environment Objects/PersistentObjects_Prefab/GlobalObjectPools/CloudSlingshot_Projectile(Clone)");
                 Mods.BoardSelectCooldown = Time.time;
@@ -600,8 +816,7 @@ namespace ModsMain
 
         public static void ShitGunV2()
         {
-            bool flag = ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f;
-            if (flag)
+            if (ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f)
             {
                 GameObject gameObject = GameObject.Find("Environment Objects/PersistentObjects_Prefab/GlobalObjectPools/CloudSlingshot_Projectile(Clone)");
                 Mods.BoardSelectCooldown = Time.time;
@@ -634,8 +849,7 @@ namespace ModsMain
 
         public static void gun()
         {
-            bool flag = ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f;
-            if (flag)
+            if (ControllerInputPoller.instance.rightGrab && Time.time > Mods.BoardSelectCooldown + 0.1f)
             {
                 GameObject gameObject = GameObject.Find("Environment Objects/PersistentObjects_Prefab/GlobalObjectPools/SlingshotProjectile(Clone)");
                 Mods.BoardSelectCooldown = Time.time;
@@ -682,11 +896,9 @@ namespace ModsMain
             Physics.Raycast(GorillaLocomotion.Player.Instance.leftControllerTransform.position, GorillaLocomotion.Player.Instance.leftControllerTransform.right, out raycastHit2, 100f, int.MaxValue);
             if (ControllerInputPoller.instance.rightGrab)
             {
-                bool flag37 = raycastHit.distance < raycastHit2.distance;
-                if (flag37)
+                if (raycastHit.distance < raycastHit2.distance)
                 {
-                    bool flag38 = raycastHit.distance < 1f;
-                    if (flag38)
+                    if (raycastHit.distance < 1f)
                     {
                         Vector3 normalized = (raycastHit.point - GorillaLocomotion.Player.Instance.rightControllerTransform.position).normalized;
                         Physics.gravity = normalized * 9.81f;
@@ -696,8 +908,7 @@ namespace ModsMain
                         Physics.gravity = new Vector3(0f, -9.81f, 0f);
                     }
                 }
-                bool flag39 = raycastHit.distance == raycastHit2.distance;
-                if (flag39)
+                if (raycastHit.distance == raycastHit2.distance)
                 {
                     Physics.gravity = new Vector3(0f, -9.81f, 0f);
                 }
@@ -708,11 +919,9 @@ namespace ModsMain
             }
             if (ControllerInputPoller.instance.leftGrab)
             {
-                bool flag40 = raycastHit.distance > raycastHit2.distance;
-                if (flag40)
+                if (raycastHit.distance > raycastHit2.distance)
                 {
-                    bool flag41 = raycastHit2.distance < 1f;
-                    if (flag41)
+                    if (raycastHit2.distance < 1f)
                     {
                         Vector3 normalized2 = (raycastHit2.point - GorillaLocomotion.Player.Instance.leftControllerTransform.position).normalized;
                         Physics.gravity = normalized2 * 9.81f;
@@ -722,8 +931,7 @@ namespace ModsMain
                         Physics.gravity = new Vector3(0f, -9.81f, 0f);
                     }
                 }
-                bool flag42 = raycastHit.distance == raycastHit2.distance;
-                if (flag42)
+                if (raycastHit.distance == raycastHit2.distance)
                 {
                     Physics.gravity = new Vector3(0f, -9.81f, 0f);
                 }
@@ -782,6 +990,7 @@ namespace ModsMain
 
         private static bool regbool1 = true;
 
+        //I TOOK THIS FROM SYNXPRIVATEMENU
         public static void ProcessNoClip()
         {
             bool noclipbool = false;
